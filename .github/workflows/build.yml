@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        arch: [amd64, arm64]
+        arch: [386, amd64, arm64]
     steps:
     - name: Set up Go
       uses: actions/setup-go@v4
@@ -51,9 +51,11 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           path: downloads
+      - name: List files in download folder
+        run: ls -lah downloads/
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: downloads/*
+          files: 'downloads/*'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -33,12 +33,12 @@ jobs:
         if [ "$GOOS" == "ubuntu" ]; then
           GOOS="linux"
         fi
-        go build -o myapp-$GOOS-$GOARCH
+        go build -o kerbrute-$GOOS-$GOARCH
     - name: Upload Artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: myapp-${{ matrix.os }}-${{ matrix.arch }}
-        path: myapp-${{ matrix.os | lower }}-${{ matrix.arch }}
+        name: kerbrute-${{ matrix.os }}-${{ matrix.arch }}
+        path: kerbrute-${{ matrix.os }}-${{ matrix.arch }}
 
   release:
     needs: build
@@ -64,6 +64,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./myapp-${{ matrix.os | lower }}-${{ matrix.arch }}
-          asset_name: myapp-${{ matrix.os }}-${{ matrix.arch }}
+          asset_path: ./kerbrute-${{ matrix.os }}-${{ matrix.arch }}
+          asset_name: kerbrute-${{ matrix.os }}-${{ matrix.arch }}
           asset_content_type: application/octet-stream

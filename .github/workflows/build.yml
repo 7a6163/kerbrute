@@ -1,4 +1,4 @@
-name: Go Build and Release
+name: Build and Release
 
 on:
   push:
@@ -6,24 +6,71 @@ on:
       - 'v*'
 
 jobs:
-  releases-matrix:
-    name: Release Matrix
+  build:
+    name: Build for ${{ matrix.os }} on ${{ matrix.arch }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux, windows, darwin]
-        goarch: ["386", amd64, arm64]
-        exclude:
-          - goarch: "386"
+        os: [windows, macos, linux]
+        arch: [amd64, arm64, 386]
+        include:
+          - os: windows
+            goos: windows
+            ext: .exe
+          - os: macos
             goos: darwin
+            ext: ''
+          - os: linux
+            goos: linux
+            ext: ''
     steps:
-    - uses: actions/checkout@v4
-    - uses: wangyoucao577/go-release-action@v1
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        goversion: "1.19"
-        project_path: "./cmd"
-        binary_name: "kerbrute"
-        extra_files: LICENSE README.md
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.19'
+
+      - name: Set up QEMU
+        if: matrix.arch != 'amd64'
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set GOOS and GOARCH
+        run: |
+          echo "GOOS=${{ matrix.goos }}" >> $GITHUB_ENV
+          echo "GOARCH=${{ matrix.arch }}" >> $GITHUB_ENV
+
+      - name: Build
+        run: go build -v -o kerbrute-${{ matrix.goos }}-${{ matrix.arch }}${{ matrix.ext }}
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: kerbrute-${{ matrix.os }}-${{ matrix.arch }}
+          path: kerbrute-${{ matrix.goos }}-${{ matrix.arch }}${{ matrix.ext }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            kerbrute-windows-amd64.exe
+            kerbrute-windows-arm64.exe
+            kerbrute-windows-386.exe
+            kerbrute-macos-amd64
+            kerbrute-macos-arm64
+            kerbrute-macos-386
+            kerbrute-linux-amd64
+            kerbrute-linux-arm64
+            kerbrute-linux-386
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

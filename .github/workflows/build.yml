@@ -72,13 +72,13 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ./kerbrute/kerbrute-windows-amd64.exe
-            ./kerbrute/kerbrute-windows-arm64.exe
-            ./kerbrute/kerbrute-windows-386.exe
-            ./kerbrute/kerbrute-macos-amd64
-            ./kerbrute/kerbrute-macos-arm64
-            ./kerbrute/kerbrute-linux-amd64
-            ./kerbrute/kerbrute-linux-arm64
-            ./kerbrute/kerbrute-linux-386
+            ./kerbrute-windows-amd64
+            ./kerbrute-windows-arm64
+            ./kerbrute-windows-386
+            ./kerbrute-macos-amd64
+            ./kerbrute-macos-arm64
+            ./kerbrute-linux-amd64
+            ./kerbrute-linux-arm64
+            ./kerbrute-linux-386
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

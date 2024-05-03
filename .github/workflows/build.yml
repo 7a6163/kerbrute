@@ -13,6 +13,9 @@ jobs:
       matrix:
         os: [windows, macos, linux]
         arch: [amd64, arm64, 386]
+        exclude:
+          - os: macos
+            arch: 386
         include:
           - os: windows
             goos: windows

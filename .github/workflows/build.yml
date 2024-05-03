@@ -3,7 +3,10 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*.*.*"
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -63,17 +66,16 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
-            kerbrute-windows-amd64.exe
-            kerbrute-windows-arm64.exe
-            kerbrute-windows-386.exe
-            kerbrute-macos-amd64
-            kerbrute-macos-arm64
-            kerbrute-macos-386
-            kerbrute-linux-amd64
-            kerbrute-linux-arm64
-            kerbrute-linux-386
+            ./kerbrute/kerbrute-windows-amd64.exe
+            ./kerbrute/kerbrute-windows-arm64.exe
+            ./kerbrute/kerbrute-windows-386.exe
+            ./kerbrute/kerbrute-macos-amd64
+            ./kerbrute/kerbrute-macos-arm64
+            ./kerbrute/kerbrute-linux-amd64
+            ./kerbrute/kerbrute-linux-arm64
+            ./kerbrute/kerbrute-linux-386
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

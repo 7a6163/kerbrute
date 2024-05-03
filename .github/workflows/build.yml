@@ -1,0 +1,69 @@
+name: Go Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        arch: [386, amd64, arm64]
+    steps:
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.19'
+    - name: Check out code
+      uses: actions/checkout@v4
+    - name: Set up QEMU
+      if: matrix.os != 'windows-latest' && (matrix.arch == 'arm64' || matrix.arch == 'arm')
+      uses: docker/setup-qemu-action@v2
+    - name: Set target platform
+      run: |
+        echo "TARGET_PLATFORM=${{ matrix.os }}_${{ matrix.arch }}" >> $GITHUB_ENV
+    - name: Build
+      run: |
+        GOOS=$(echo $TARGET_PLATFORM | cut -d_ -f1 | tr '[:upper:]' '[:lower:]')
+        GOARCH=$(echo $TARGET_PLATFORM | cut -d_ -f2)
+        if [ "$GOOS" == "ubuntu" ]; then
+          GOOS="linux"
+        fi
+        go build -o myapp-$GOOS-$GOARCH
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: myapp-${{ matrix.os }}-${{ matrix.arch }}
+        path: myapp-${{ matrix.os | lower }}-${{ matrix.arch }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./myapp-${{ matrix.os | lower }}-${{ matrix.arch }}
+          asset_name: myapp-${{ matrix.os }}-${{ matrix.arch }}
+          asset_content_type: application/octet-stream

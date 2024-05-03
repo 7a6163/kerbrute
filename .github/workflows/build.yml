@@ -21,14 +21,22 @@ jobs:
         exclude:
           - goarch: "386"
             goos: darwin
-    steps:
-    - uses: actions/checkout@v4
-    - uses: wangyoucao577/go-release-action@v1
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        goversion: "https://dl.google.com/go/go1.19.linux-amd64.tar.gz"
-        project_path: "./cmd/kerbrute"
-        binary_name: "kerbrute"
-        extra_files: LICENSE README.md
+        steps:
+          - name: Checkout code
+            uses: actions/checkout@v4
+
+          - name: Build binaries and add to the release
+            uses: wangyoucao577/go-release-action@v1
+            with:
+                github_token: ${{ secrets.GITHUB_TOKEN }}
+                goos: ${{ matrix.goos }}
+                goarch: ${{ matrix.goarch }}
+                asset_name: ente-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
+                release_name: ${{ github.ref_name }}
+                goversion: "1.20"
+                project_path: "./cli"
+                pre_command: export CGO_ENABLED=0
+                build_flags: "-trimpath"
+                ldflags: "-X main.AppVersion=${{ github.ref_name }} -s -w"
+                md5sum: false
+                sha256sum: true

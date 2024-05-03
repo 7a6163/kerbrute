@@ -35,12 +35,11 @@ jobs:
         GOARCH="${{ matrix.arch }}"
         OUTPUT_NAME="kerbrute-$GOOS-$GOARCH"
         go build -o $OUTPUT_NAME
-        echo "OUTPUT_NAME=$OUTPUT_NAME" >> $GITHUB_ENV
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
       with:
         name: kerbrute-${{ matrix.os }}-${{ matrix.arch }}
-        path: ${{ env.OUTPUT_NAME }}
+        path: ./${{ env.OUTPUT_NAME }}
 
   release:
     needs: build
@@ -52,22 +51,9 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           path: downloads
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: downloads/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-      - name: Upload Release Asset
-        run: |
-          for file in downloads/*; do
-            echo "Uploading $file"
-            curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-                 -H "Content-Type: application/octet-stream" \
-                 --data-binary @"$file" \
-                 "${{ steps.create_release.outputs.upload_url }}?name=$(basename $file)&label=$(basename $file)"
-          done

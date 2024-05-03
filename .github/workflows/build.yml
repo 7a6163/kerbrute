@@ -23,22 +23,18 @@ jobs:
     - name: Set up QEMU
       if: matrix.os != 'windows-latest' && (matrix.arch == 'arm64' || matrix.arch == 'arm')
       uses: docker/setup-qemu-action@v2
-    - name: Set target platform
-      run: |
-        echo "TARGET_PLATFORM=${{ matrix.os }}_${{ matrix.arch }}" >> $GITHUB_ENV
     - name: Build
       run: |
-        GOOS=$(echo $TARGET_PLATFORM | cut -d_ -f1 | tr '[:upper:]' '[:lower:]')
-        GOARCH=$(echo $TARGET_PLATFORM | cut -d_ -f2)
-        if [ "$GOOS" == "ubuntu" ]; then
-          GOOS="linux"
-        fi
-        go build -o kerbrute-$GOOS-$GOARCH
-    - name: Upload Artifacts
+        GOOS=${{ matrix.os == 'ubuntu-latest' ? 'linux' : matrix.os == 'macos-latest' ? 'darwin' : 'windows' }}
+        GOARCH=${{ matrix.arch }}
+        OUTPUT_NAME="kerbrute-$GOOS-$GOARCH"
+        go build -o $OUTPUT_NAME
+        echo "OUTPUT_NAME=$OUTPUT_NAME" >> $GITHUB_ENV
+    - name: Upload Artifact
       uses: actions/upload-artifact@v3
       with:
         name: kerbrute-${{ matrix.os }}-${{ matrix.arch }}
-        path: kerbrute-${{ matrix.os }}-${{ matrix.arch }}
+        path: ${{ env.OUTPUT_NAME }}
 
   release:
     needs: build
@@ -59,11 +55,11 @@ jobs:
           draft: false
           prerelease: false
       - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./kerbrute-${{ matrix.os }}-${{ matrix.arch }}
-          asset_name: kerbrute-${{ matrix.os }}-${{ matrix.arch }}
-          asset_content_type: application/octet-stream
+        run: |
+          for file in kerbrute-*; do
+            echo "Uploading $file"
+            curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                 -H "Content-Type: application/octet-stream" \
+                 --data-binary @"$file" \
+                 "${{ steps.create_release.outputs.upload_url }}?name=$(basename $file)&label=$(basename $file)"
+          done

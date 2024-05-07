@@ -1,46 +1,56 @@
-name: "release"
+name: Go Release Build
 
 on:
   push:
     tags:
-      - "v*"
-
-permissions:
-  contents: write
-  packages: write
+      - 'v*'
 
 jobs:
-  tagged-release:
-    name: "Tagged Release"
-    runs-on: "ubuntu-latest"
-
-    steps:
-      - uses: "marvinpinto/action-automatic-releases@latest"
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          prerelease: false
-
-  releases-matrix:
-    name: Release Go Binary
-    needs: tagged-release
+  build:
+    name: Build for ${{ matrix.os }} ${{ matrix.arch }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux, windows, darwin]
-        goarch: ['386', amd64, arm64]
-        exclude:
-          - goarch: '386'
-            goos: darwin
-          - goarch: 'arm64'
-            goos: windows
-
+        go-version: [1.18]
+        os: [linux, darwin, windows]
+        arch: [amd64, arm64]
     steps:
-    - uses: actions/checkout@v4
-    - uses: wangyoucao577/go-release-action@v1.50
+    - name: Set up Go
+      uses: actions/setup-go@v3
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        goversion: '1.19'
-        project_path: './cmd/'
-        binary_name: 'kerbrute'
+        go-version: ${{ matrix.go-version }}
+
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Build project
+      run: |
+        env GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -o kerbrute-${{ matrix.os }}-${{ matrix.arch }} .
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: kerbrute-${{ matrix.os }}-${{ matrix.arch }}
+        path: kerbrute-${{ matrix.os }}-${{ matrix.arch }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download Artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: .
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          kerbrute-linux-amd64
+          kerbrute-linux-arm64
+          kerbrute-darwin-amd64
+          kerbrute-darwin-arm64
+          kerbrute-windows-amd64
+          kerbrute-windows-arm64
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

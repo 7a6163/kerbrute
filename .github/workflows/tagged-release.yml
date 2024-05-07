@@ -1,9 +1,13 @@
-name: "tagged-release"
+name: "release"
 
 on:
   push:
     tags:
       - "v*"
+
+permissions:
+  contents: write
+  packages: write
 
 jobs:
   tagged-release:
@@ -15,3 +19,28 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
+
+  releases-matrix:
+    name: Release Go Binary
+    needs: tagged-release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: ['386', amd64, arm64]
+        exclude:
+          - goarch: '386'
+            goos: darwin
+          - goarch: 'arm64'
+            goos: windows
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: wangyoucao577/go-release-action@v1.50
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        goversion: '1.19'
+        project_path: './cmd/'
+        binary_name: 'kerbrute'
